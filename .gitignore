@@ -5,6 +5,8 @@
 kexus_state.json
 *.log
 *.bat
+*.txt
+.current_zone
 
 # 编译生成的可执行文件（不用上传，别人可以自己编译）
 *.exe
