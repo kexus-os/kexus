@@ -25,3 +25,8 @@ __pycache__/
 # IDE 配置（个人习惯不同）
 .idea/
 .vscode/
+
+.current_zone
+AGENTS.md
+ZONE_README.md
+init.txt
