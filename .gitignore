@@ -1,0 +1,25 @@
+# 敏感配置和运行时数据（绝对不能上传）
+.env
+*.env
+.env.local
+kexus_state.json
+*.log
+*.bat
+
+# 编译生成的可执行文件（不用上传，别人可以自己编译）
+*.exe
+kexus
+kexus-os
+
+# 高价值商业算子（闭源层，仅本地保留）
+zone/_stockk
+zone/_yunyao
+
+# Python 环境（个人专属且体积大）
+kexus_env/
+__pycache__/
+*.pyc
+
+# IDE 配置（个人习惯不同）
+.idea/
+.vscode/

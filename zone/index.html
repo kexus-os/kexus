@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kexus OS | Zone Manager</title>
+    <script src="/vendor/vue.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg: #0d1117;
+            --bg-secondary: #161b22;
+            --border: #30363d;
+            --text: #c9d1d9;
+            --text-secondary: #8b949e;
+            --primary: #58a6ff;
+            --secondary: #a371f7;
+            --success: #3fb950;
+            --danger: #f85149;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* 粒子背景 */
+        #particles-canvas {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 0;
+            opacity: 0.4;
+        }
+
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 3rem 2rem;
+        }
+
+        /* 头部 */
+        header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: var(--text);
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        /* 当前域 */
+        .current-zone {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem 2rem;
+            margin-bottom: 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1.5rem;
+        }
+
+        .zone-info {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .zone-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .zone-details h2 {
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+
+        .zone-path {
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            font-family: monospace;
+        }
+
+        .btn {
+            padding: 0.625rem 1.25rem;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn:active {
+            transform: scale(0.96);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: var(--bg);
+        }
+
+        .btn-primary:hover {
+            background: #79c0ff;
+        }
+
+        /* 网格 */
+        .zones-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 1rem;
+        }
+
+        .zone-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .zone-card:hover {
+            border-color: var(--primary);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+        }
+
+        .zone-card.active {
+            border-color: var(--primary);
+            background: rgba(88, 166, 255, 0.05);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+        }
+
+        .card-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 8px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .card-title h3 {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .zone-id {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .badge {
+            margin-left: auto;
+            padding: 0.25rem 0.75rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 500;
+        }
+
+        .badge.active {
+            background: rgba(88, 166, 255, 0.15);
+            color: var(--primary);
+        }
+
+        .badge.inactive {
+            background: rgba(88, 166, 255, 0.1);
+            color: var(--primary);
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+            padding: 1rem 0;
+            border-top: 1px solid var(--border);
+            border-bottom: 1px solid var(--border);
+            margin: 1rem 0;
+        }
+
+        .stat {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text);
+            font-family: 'SF Mono', Monaco, monospace;
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-sm {
+            flex: 1;
+            padding: 0.5rem;
+            font-size: 0.8rem;
+            justify-content: center;
+        }
+
+        .btn-secondary {
+            background: var(--bg);
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            border-color: var(--text-secondary);
+        }
+
+        /* 创建卡片 */
+        .create-zone {
+            border: 2px dashed var(--border);
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            min-height: 220px;
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .create-zone:hover {
+            border-color: var(--primary);
+            background: rgba(88, 166, 255, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .create-zone:hover .plus {
+            border-color: var(--primary);
+            color: var(--primary);
+            transform: scale(1.05);
+        }
+
+        .plus {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            color: var(--text-secondary);
+            transition: all 0.25s ease;
+        }
+
+        /* Toast */
+        .toast-container {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .toast {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 0.875rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            animation: slideIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            min-width: 280px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+
+        .toast.success {
+            border-color: rgba(88, 166, 255, 0.3);
+        }
+
+        .toast.error {
+            border-color: rgba(248, 81, 73, 0.3);
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%) scale(0.95); opacity: 0; }
+            to { transform: translateX(0) scale(1); opacity: 1; }
+        }
+
+        /* Modal */
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(4px);
+            z-index: 99;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 1.5rem;
+            width: 90%;
+            max-width: 400px;
+            animation: scaleIn 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        @keyframes scaleIn {
+            from { transform: scale(0.95); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .modal h3 {
+            margin-bottom: 1rem;
+            font-size: 1.1rem;
+        }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.25rem;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.625rem;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            color: var(--text);
+            font-size: 0.9rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.1);
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+        }
+
+        footer {
+            text-align: center;
+            padding: 3rem 0 1rem;
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="particles-canvas"></canvas>
+    
+    <div id="app">
+        <div class="container">
+            <header>
+                <h1 class="logo">KEXUS OS</h1>
+                <p class="subtitle">域-管理</p>
+            </header>
+
+            <div class="zones-grid">
+                <div v-for="zone in zones" :key="zone.id"
+                     class="zone-card"
+                     @click="enterZone(zone.id)" style="cursor: pointer;">
+                    <div class="card-header">
+                        <div class="card-icon">{{ zone.icon || '📦' }}</div>
+                        <div class="card-title">
+                            <h3>{{ zone.name || zone.id }}</h3>
+                            <div class="zone-id">{{ zone.id }}</div>
+                        </div>
+                        <span class="badge active">
+                            可用
+                        </span>
+                    </div>
+                    
+                    <div class="stats">
+                        <div class="stat">
+                            <div class="stat-value">{{ zone.flows || 0 }}</div>
+                            <div class="stat-label">Flows</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">{{ zone.ops || 0 }}</div>
+                            <div class="stat-label">算子</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-value">{{ zone.entities || 0 }}</div>
+                            <div class="stat-label">实体</div>
+                        </div>
+                    </div>
+                    
+                    <div class="actions" @click.stop>
+                        <button class="btn btn-primary btn-sm" @click="enterZone(zone.id)">进入域</button>
+                    </div>
+                </div>
+
+                <div class="zone-card create-zone" @click="showCreateDialog = true">
+                    <div class="plus">+</div>
+                    <h3>创建新域</h3>
+                    <p style="color: var(--text-secondary); font-size: 0.8rem;">新的 Kexus OS 实例</p>
+                </div>
+            </div>
+
+            <footer>
+                <p>Kexus OS - Zone Manager</p>
+                <p>2026</p>
+            </footer>
+        </div>
+
+        <div class="toast-container">
+            <div v-for="toast in toasts" :key="toast.id" class="toast">
+                {{ toast.icon }} {{ toast.message }}
+            </div>
+        </div>
+
+        <div v-if="showCreateDialog" class="modal" @click.self="showCreateDialog = false">
+            <div class="modal-box">
+                <h3>创建新域</h3>
+                <div class="form-group">
+                    <label>域ID</label>
+                    <input v-model="newZone.id" placeholder="_production">
+                </div>
+                <div class="form-group">
+                    <label>显示名称</label>
+                    <input v-model="newZone.name" placeholder="生产环境">
+                </div>
+                <div class="form-group">
+                    <label>图标</label>
+                    <input v-model="newZone.icon" placeholder="🚀">
+                </div>
+                <div class="modal-actions">
+                    <button class="btn btn-secondary" @click="showCreateDialog = false">取消</button>
+                    <button class="btn btn-primary" @click="createZone">创建</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const { createApp } = Vue;
+
+        createApp({
+            data() {
+                return {
+                    zones: [],
+                    showCreateDialog: false,
+                    newZone: { id: '', name: '', icon: '🚀' },
+                    toasts: []
+                };
+            },
+            mounted() {
+                this.initParticles();
+                this.fetchZones();
+            },
+            methods: {
+                initParticles() {
+                    const canvas = document.getElementById('particles-canvas');
+                    const ctx = canvas.getContext('2d');
+                    
+                    const resize = () => {
+                        canvas.width = window.innerWidth;
+                        canvas.height = window.innerHeight;
+                    };
+                    resize();
+                    window.addEventListener('resize', resize);
+
+                    const particles = [];
+                    const particleCount = 50;
+                    const connectionDistance = 150;
+                    const maxConnections = 3;
+
+                    for (let i = 0; i < particleCount; i++) {
+                        particles.push({
+                            x: Math.random() * canvas.width,
+                            y: Math.random() * canvas.height,
+                            vx: (Math.random() - 0.5) * 0.5,
+                            vy: (Math.random() - 0.5) * 0.5,
+                            radius: Math.random() * 2 + 1
+                        });
+                    }
+
+                    let mouseX = 0, mouseY = 0;
+                    document.addEventListener('mousemove', (e) => {
+                        mouseX = e.clientX;
+                        mouseY = e.clientY;
+                    });
+
+                    const animate = () => {
+                        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                        // 更新和绘制粒子
+                        particles.forEach((p, i) => {
+                            p.x += p.vx;
+                            p.y += p.vy;
+
+                            if (p.x < 0 || p.x > canvas.width) p.vx *= -1;
+                            if (p.y < 0 || p.y > canvas.height) p.vy *= -1;
+
+                            // 绘制粒子
+                            ctx.beginPath();
+                            ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                            ctx.fillStyle = 'rgba(88, 166, 255, 0.5)';
+                            ctx.fill();
+
+                            // 绘制连线
+                            let connections = 0;
+                            for (let j = i + 1; j < particles.length; j++) {
+                                const p2 = particles[j];
+                                const dx = p.x - p2.x;
+                                const dy = p.y - p2.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+
+                                if (dist < connectionDistance && connections < maxConnections) {
+                                    ctx.beginPath();
+                                    ctx.moveTo(p.x, p.y);
+                                    ctx.lineTo(p2.x, p2.y);
+                                    ctx.strokeStyle = `rgba(88, 166, 255, ${0.2 * (1 - dist / connectionDistance)})`;
+                                    ctx.lineWidth = 1;
+                                    ctx.stroke();
+                                    connections++;
+                                }
+                            }
+
+                            // 鼠标连线
+                            const mdx = p.x - mouseX;
+                            const mdy = p.y - mouseY;
+                            const mDist = Math.sqrt(mdx * mdx + mdy * mdy);
+                            if (mDist < connectionDistance * 1.5) {
+                                ctx.beginPath();
+                                ctx.moveTo(p.x, p.y);
+                                ctx.lineTo(mouseX, mouseY);
+                                ctx.strokeStyle = `rgba(88, 166, 255, ${0.3 * (1 - mDist / (connectionDistance * 1.5))})`;
+                                ctx.stroke();
+                            }
+                        });
+
+                        requestAnimationFrame(animate);
+                    };
+                    animate();
+                },
+                async fetchZones() {
+                    try {
+                        const res = await fetch('/api/zone/list');
+                        const data = await res.json();
+                        this.zones = data.zones || [];
+                    } catch (e) {
+                        this.showToast('获取域列表失败', 'error');
+                    }
+                },
+
+
+                enterZone(zoneId) {
+                    window.location.href = `/zone/${zoneId}/`;
+                },
+
+                async createZone() {
+                    if (!this.newZone.id) return this.showToast('请输入域ID', 'error');
+                    try {
+                        const res = await fetch('/api/zone/create', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(this.newZone)
+                        });
+                        const data = await res.json();
+                        if (data.status === 'success') {
+                            this.showToast('创建成功', 'success');
+                            this.showCreateDialog = false;
+                            this.fetchZones();
+                            this.newZone = { id: '', name: '', icon: '🚀' };
+                        }
+                    } catch (e) {
+                        this.showToast('创建失败', 'error');
+                    }
+                },
+                showToast(message, type = 'success') {
+                    const id = Date.now();
+                    this.toasts.push({ id, message, icon: type === 'success' ? '✓' : '✕' });
+                    setTimeout(() => this.toasts = this.toasts.filter(t => t.id !== id), 3000);
+                }
+            }
+        }).mount('#app');
+    </script>
+</body>
+</html>
